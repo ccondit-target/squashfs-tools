@@ -23,7 +23,7 @@
   <version>1.0.0-SNAPSHOT</version>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <commons.compress.version>1.16.1</commons.compress.version>
+    <commons.compress.version>1.18</commons.compress.version>
     <slf4j.version>1.7.25</slf4j.version>
     <junit.version>4.12</junit.version>
     <jacoco.maven.plugin.version>0.8.0</jacoco.maven.plugin.version>
