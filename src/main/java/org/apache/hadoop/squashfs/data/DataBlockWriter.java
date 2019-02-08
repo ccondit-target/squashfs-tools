@@ -71,9 +71,10 @@ public class DataBlockWriter {
 
   private byte[] compress(
       byte[] data, int offset, int length) throws IOException {
+    Deflater def = new Deflater(Deflater.BEST_COMPRESSION);
     try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-      try (DeflaterOutputStream dos = new DeflaterOutputStream(bos,
-          new Deflater(), 4096)) {
+      try (DeflaterOutputStream dos = new DeflaterOutputStream(
+          bos, def, 4096)) {
         dos.write(data, offset, length);
       }
       byte[] result = bos.toByteArray();
@@ -81,6 +82,8 @@ public class DataBlockWriter {
         return null;
       }
       return result;
+    } finally {
+      def.end();
     }
   }
 

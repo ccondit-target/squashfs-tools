@@ -130,9 +130,10 @@ public class FragmentWriter {
   }
 
   private byte[] compressData() throws IOException {
+    Deflater def = new Deflater(Deflater.BEST_COMPRESSION);
     try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-      try (DeflaterOutputStream dos = new DeflaterOutputStream(bos,
-          new Deflater(), 4096)) {
+      try (DeflaterOutputStream dos = new DeflaterOutputStream(
+          bos, def, 4096)) {
         dos.write(currentBlock, 0, currentOffset);
       }
       byte[] result = bos.toByteArray();
@@ -140,6 +141,8 @@ public class FragmentWriter {
         return null;
       }
       return result;
+    } finally {
+      def.end();
     }
   }
 
