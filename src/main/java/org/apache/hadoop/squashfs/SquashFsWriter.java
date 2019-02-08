@@ -48,6 +48,8 @@ public class SquashFsWriter implements Closeable {
   private final FragmentWriter fragmentWriter;
   private final byte[] blockBuffer;
 
+  private Integer modificationTime = null;
+
   public SquashFsWriter(File outputFile) throws SquashFsException, IOException {
     raf = new RandomAccessFile(outputFile, "rw");
     writeDummySuperblock(raf);
@@ -57,6 +59,10 @@ public class SquashFsWriter implements Closeable {
     fsTree = createSquashFsTree();
     dataWriter = createDataWriter(superBlock, raf);
     fragmentWriter = createFragmentWriter(superBlock, raf);
+  }
+
+  public void setModificationTime(int modificationTime) {
+    this.modificationTime = modificationTime;
   }
 
   static void writeDummySuperblock(RandomAccessFile raf) throws IOException {
@@ -204,9 +210,13 @@ public class SquashFsWriter implements Closeable {
     long fileSize = raf.getFilePointer();
     LOG.debug("File size: {}", fileSize);
 
+    if (modificationTime == null) {
+      modificationTime = (int) (System.currentTimeMillis() / 1000L);
+    }
+
     // update superblock
     superBlock.setInodeCount(fsTree.getInodeCount());
-    superBlock.setModificationTime((int) (System.currentTimeMillis() / 1000L));
+    superBlock.setModificationTime(modificationTime);
     superBlock.setFragmentEntryCount(fragmentWriter.getFragmentEntryCount());
     superBlock.setIdCount((short) idGenerator.getIdCount());
     superBlock.setRootInodeRef(rootInodeRef.toINodeRefRaw());

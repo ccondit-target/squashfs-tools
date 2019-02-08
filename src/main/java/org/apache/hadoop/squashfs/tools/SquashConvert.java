@@ -27,6 +27,8 @@ import org.apache.hadoop.squashfs.util.SizeTrackingInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Date;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.GZIPInputStream;
 
 public class SquashConvert {
@@ -48,10 +50,13 @@ public class SquashConvert {
       long fileCount = 0L;
       try (SquashFsWriter writer = new SquashFsWriter(outputFile)) {
         TarArchiveEntry entry;
+        AtomicReference<Date> modDate = new AtomicReference<>(new Date(0));
+
         while ((entry = tis.getNextTarEntry()) != null) {
-          processTarEntry(stis, tis, entry, writer);
+          processTarEntry(stis, tis, entry, writer, modDate);
           fileCount++;
         }
+        writer.setModificationTime((int) (modDate.get().getTime() / 1000L));
         writer.finish();
       }
 
@@ -63,7 +68,8 @@ public class SquashConvert {
       SizeTrackingInputStream stis,
       TarArchiveInputStream tis,
       TarArchiveEntry entry,
-      SquashFsWriter writer) throws IOException {
+      SquashFsWriter writer,
+      AtomicReference<Date> modDate) throws IOException {
 
     int userId = (int) entry.getLongUserId();
     int groupId = (int) entry.getLongGroupId();
@@ -78,12 +84,17 @@ public class SquashConvert {
 
     short permissions = (short) (entry.getMode() & 07777);
 
+    Date lastModified = entry.getLastModifiedDate();
+    if (lastModified.after(modDate.get())) {
+      modDate.set(lastModified);
+    }
+
     SquashFsEntryBuilder tb = writer.entry(name)
         .uid(userId)
         .gid(groupId)
         .permissions(permissions)
         .fileSize(entry.getSize())
-        .lastModified(entry.getLastModifiedDate());
+        .lastModified(lastModified);
 
     if (entry.isSymbolicLink()) {
       tb.symlink(entry.getLinkName());
