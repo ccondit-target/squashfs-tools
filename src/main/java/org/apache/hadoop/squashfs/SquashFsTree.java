@@ -25,23 +25,25 @@ import org.apache.hadoop.squashfs.table.ExportTable;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class SquashFsTree {
 
-  private final Map<String, SquashFsEntry> map = new HashMap<>();
+  private final SortedMap<String, SquashFsEntry> map = new TreeMap<>();
 
   private final AtomicInteger inodeAssignments = new AtomicInteger(0);
-  private final Map<Integer, Set<SquashFsEntry>> inodeToEntry = new HashMap<>();
+  private final SortedMap<Integer, Set<SquashFsEntry>> inodeToEntry =
+      new TreeMap<>();
   private final MetadataWriter inodeWriter = new MetadataWriter();
   private final MetadataWriter dirWriter = new MetadataWriter();
-  private final Map<Integer, MetadataBlockRef> visitedInodes = new TreeMap<>();
+  private final SortedMap<Integer, MetadataBlockRef> visitedInodes =
+      new TreeMap<>();
 
   private final SquashFsEntry root = new SquashFsEntry();
   private MetadataBlockRef rootInodeRef;

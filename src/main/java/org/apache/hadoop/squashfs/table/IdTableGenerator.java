@@ -23,9 +23,9 @@ import org.apache.hadoop.squashfs.metadata.MetadataWriter;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import static org.apache.hadoop.squashfs.util.BinUtils.DumpOptions.DECIMAL;
 import static org.apache.hadoop.squashfs.util.BinUtils.DumpOptions.UNSIGNED;
@@ -34,10 +34,10 @@ import static org.apache.hadoop.squashfs.util.BinUtils.dumpBin;
 public class IdTableGenerator {
 
   private final List<Integer> forward = new ArrayList<>();
-  private final Map<Long, Short> reverse = new HashMap<>();
+  private final SortedMap<Long, Short> reverse = new TreeMap<>();
 
   public short addUidGid(int value) {
-    Long key = new Long(value & 0xffffffffL);
+    Long key = Long.valueOf(value & 0xffffffffL);
     Short result = reverse.get(key);
     if (result != null) {
       return result.shortValue();

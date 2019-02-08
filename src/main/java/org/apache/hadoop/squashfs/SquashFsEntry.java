@@ -43,10 +43,11 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SquashFsEntry {
@@ -228,15 +229,16 @@ public class SquashFsEntry {
     }
   }
 
-  void assignHardlinkInodes(Map<String, SquashFsEntry> entryMap,
-      Map<Integer, Set<SquashFsEntry>> inodeToEntry) {
+  void assignHardlinkInodes(
+      SortedMap<String, SquashFsEntry> entryMap,
+      SortedMap<Integer, Set<SquashFsEntry>> inodeToEntry) {
     if (hardlinkTarget != null) {
       SquashFsEntry target = entryMap.get(hardlinkTarget);
       hardlinkEntry = target;
       inodeNumber = target.inodeNumber;
       Integer key = Integer.valueOf(inodeNumber);
       if (!inodeToEntry.containsKey(key)) {
-        inodeToEntry.put(key, new HashSet<>());
+        inodeToEntry.put(key, new LinkedHashSet<>());
       }
       inodeToEntry.get(key).add(target);
       inodeToEntry.get(key).add(this);
@@ -258,7 +260,7 @@ public class SquashFsEntry {
   }
 
   void updateHardlinkInodeCounts(
-      Map<Integer, Set<SquashFsEntry>> inodeToEntry) {
+      SortedMap<Integer, Set<SquashFsEntry>> inodeToEntry) {
     for (Set<SquashFsEntry> set : inodeToEntry.values()) {
       int count = set.stream().mapToInt(e -> e.nlink).sum();
       set.stream().forEach(e -> e.nlink = count);

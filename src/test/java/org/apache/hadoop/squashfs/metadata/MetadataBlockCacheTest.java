@@ -18,226 +18,245 @@
 
 package org.apache.hadoop.squashfs.metadata;
 
+import org.apache.hadoop.squashfs.superblock.SuperBlock;
+import org.apache.hadoop.squashfs.test.MetadataBlockReaderMock;
+import org.apache.hadoop.squashfs.test.MetadataTestUtils;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import org.apache.hadoop.squashfs.superblock.SuperBlock;
-import org.apache.hadoop.squashfs.test.MetadataBlockReaderMock;
-import org.apache.hadoop.squashfs.test.MetadataTestUtils;
-
 public class MetadataBlockCacheTest {
 
-	SuperBlock sb;
-	MetadataBlockReaderMock mbr;
-	TaggedMetadataBlockReader tmbr;
-	MetadataBlockCache cache;
-	Map<Long, MetadataBlock> blockMap;
+  SuperBlock sb;
+  MetadataBlockReaderMock mbr;
+  TaggedMetadataBlockReader tmbr;
+  MetadataBlockCache cache;
+  SortedMap<Long, MetadataBlock> blockMap;
 
-	@Before
-	public void setUp() {
-		sb = new SuperBlock();
-		blockMap = new HashMap<>();
-		for (int i = 0; i < 10000; i++) {
-			blockMap.put(Long.valueOf(i * 1000L), MetadataTestUtils.block(new byte[] { (byte) (i % 100) }));
-		}
-		mbr = new MetadataBlockReaderMock(10101, sb, blockMap);
-		tmbr = new TaggedMetadataBlockReader(true);
-		cache = new MetadataBlockCache(tmbr);
-		cache.add(10101, mbr);
-	}
+  @Before
+  public void setUp() {
+    sb = new SuperBlock();
+    blockMap = new TreeMap<>();
+    for (int i = 0; i < 10000; i++) {
+      blockMap.put(
+          Long.valueOf(i * 1000L),
+          MetadataTestUtils.block(new byte[] { (byte) (i % 100) }));
+    }
+    mbr = new MetadataBlockReaderMock(10101, sb, blockMap);
+    tmbr = new TaggedMetadataBlockReader(true);
+    cache = new MetadataBlockCache(tmbr);
+    cache.add(10101, mbr);
+  }
 
-	@After
-	public void tearDown() {
-		cache = null;
-		mbr = null;
-		blockMap = null;
-		sb = null;
-	}
+  @After
+  public void tearDown() {
+    cache = null;
+    mbr = null;
+    blockMap = null;
+    sb = null;
+  }
 
-	@Test
-	public void superBlockShouldReturnUnderlyingValue() {
-		assertSame(sb, cache.getSuperBlock(10101));
-	}
+  @Test
+  public void superBlockShouldReturnUnderlyingValue() {
+    assertSame(sb, cache.getSuperBlock(10101));
+  }
 
-	@Test
-	public void readingAllBlocksTwiceShouldResultInNoCacheHits() throws Exception {
-		for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
-			assertSame(String.format("wrong block for offset %d", entry.getKey().longValue()),
-					entry.getValue(),
-					cache.read(10101, entry.getKey().longValue()));
-		}
-		for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
-			assertSame(String.format("wrong block for offset %d", entry.getKey().longValue()),
-					entry.getValue(),
-					cache.read(10101, entry.getKey().longValue()));
-		}
-		assertEquals("wrong hit count", 0L, cache.getCacheHits());
-		assertEquals("wrong miss count", 20000L, cache.getCacheMisses());
-	}
+  @Test
+  public void readingAllBlocksTwiceShouldResultInNoCacheHits()
+      throws Exception {
+    for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
+      assertSame(String
+              .format("wrong block for offset %d", entry.getKey().longValue()),
+          entry.getValue(),
+          cache.read(10101, entry.getKey().longValue()));
+    }
+    for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
+      assertSame(String
+              .format("wrong block for offset %d", entry.getKey().longValue()),
+          entry.getValue(),
+          cache.read(10101, entry.getKey().longValue()));
+    }
+    assertEquals("wrong hit count", 0L, cache.getCacheHits());
+    assertEquals("wrong miss count", 20000L, cache.getCacheMisses());
+  }
 
-	@Test
-	public void readingSameTenBlocksTwiceShouldResultInEqualCacheHits() throws Exception {
-		int count = 0;
-		for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
-			count++;
-			if (count > 10) {
-				break;
-			}
-			assertSame(String.format("wrong block for offset %d", entry.getKey().longValue()),
-					entry.getValue(),
-					cache.read(10101, entry.getKey().longValue()));
-		}
-		count = 0;
-		for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
-			count++;
-			if (count > 10) {
-				break;
-			}
-			assertSame(String.format("wrong block for offset %d", entry.getKey().longValue()),
-					entry.getValue(),
-					cache.read(10101, entry.getKey().longValue()));
-		}
-		assertEquals("wrong hit count", 10L, cache.getCacheHits());
-		assertEquals("wrong miss count", 10L, cache.getCacheMisses());
-	}
+  @Test
+  public void readingSameTenBlocksTwiceShouldResultInEqualCacheHits()
+      throws Exception {
+    int count = 0;
+    for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
+      count++;
+      if (count > 10) {
+        break;
+      }
+      assertSame(String
+              .format("wrong block for offset %d", entry.getKey().longValue()),
+          entry.getValue(),
+          cache.read(10101, entry.getKey().longValue()));
+    }
+    count = 0;
+    for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
+      count++;
+      if (count > 10) {
+        break;
+      }
+      assertSame(String
+              .format("wrong block for offset %d", entry.getKey().longValue()),
+          entry.getValue(),
+          cache.read(10101, entry.getKey().longValue()));
+    }
+    assertEquals("wrong hit count", 10L, cache.getCacheHits());
+    assertEquals("wrong miss count", 10L, cache.getCacheMisses());
+  }
 
-	@Test
-	public void resetStatisticsShouldResetHitsAndMisses() throws Exception {
-		MetadataBlock block = blockMap.get(Long.valueOf(0L));
-		assertSame(block, cache.read(10101, Long.valueOf(0L)));
-		assertSame(block, cache.read(10101, Long.valueOf(0L)));
+  @Test
+  public void resetStatisticsShouldResetHitsAndMisses() throws Exception {
+    MetadataBlock block = blockMap.get(Long.valueOf(0L));
+    assertSame(block, cache.read(10101, Long.valueOf(0L)));
+    assertSame(block, cache.read(10101, Long.valueOf(0L)));
 
-		assertEquals("wrong hit count", 1L, cache.getCacheHits());
-		assertEquals("wrong miss count", 1L, cache.getCacheMisses());
+    assertEquals("wrong hit count", 1L, cache.getCacheHits());
+    assertEquals("wrong miss count", 1L, cache.getCacheMisses());
 
-		cache.resetStatistics();
+    cache.resetStatistics();
 
-		assertEquals("wrong hit count", 0L, cache.getCacheHits());
-		assertEquals("wrong miss count", 0L, cache.getCacheMisses());
-	}
+    assertEquals("wrong hit count", 0L, cache.getCacheHits());
+    assertEquals("wrong miss count", 0L, cache.getCacheMisses());
+  }
 
-	@Test
-	public void clearCacheShouldResetHitsAndMisses() throws Exception {
-		MetadataBlock block = blockMap.get(Long.valueOf(0L));
-		assertSame(block, cache.read(10101, Long.valueOf(0L)));
-		assertSame(block, cache.read(10101, Long.valueOf(0L)));
+  @Test
+  public void clearCacheShouldResetHitsAndMisses() throws Exception {
+    MetadataBlock block = blockMap.get(Long.valueOf(0L));
+    assertSame(block, cache.read(10101, Long.valueOf(0L)));
+    assertSame(block, cache.read(10101, Long.valueOf(0L)));
 
-		assertEquals("wrong hit count", 1L, cache.getCacheHits());
-		assertEquals("wrong miss count", 1L, cache.getCacheMisses());
+    assertEquals("wrong hit count", 1L, cache.getCacheHits());
+    assertEquals("wrong miss count", 1L, cache.getCacheMisses());
 
-		cache.clearCache();
+    cache.clearCache();
 
-		assertEquals("wrong hit count", 0L, cache.getCacheHits());
-		assertEquals("wrong miss count", 0L, cache.getCacheMisses());
-	}
+    assertEquals("wrong hit count", 0L, cache.getCacheHits());
+    assertEquals("wrong miss count", 0L, cache.getCacheMisses());
+  }
 
-	@Test
-	public void cacheSizeOfZeroShouldBeInterpretedAsOne() throws Exception {
-		cache = new MetadataBlockCache(tmbr, 0);
-		MetadataBlock block = blockMap.get(Long.valueOf(0L));
-		assertSame(block, cache.read(10101, Long.valueOf(0L)));
-		assertSame(block, cache.read(10101, Long.valueOf(0L)));
+  @Test
+  public void cacheSizeOfZeroShouldBeInterpretedAsOne() throws Exception {
+    cache = new MetadataBlockCache(tmbr, 0);
+    MetadataBlock block = blockMap.get(Long.valueOf(0L));
+    assertSame(block, cache.read(10101, Long.valueOf(0L)));
+    assertSame(block, cache.read(10101, Long.valueOf(0L)));
 
-		assertEquals("wrong hit count", 1L, cache.getCacheHits());
-		assertEquals("wrong miss count", 1L, cache.getCacheMisses());
-	}
+    assertEquals("wrong hit count", 1L, cache.getCacheHits());
+    assertEquals("wrong miss count", 1L, cache.getCacheMisses());
+  }
 
-	@Test
-	public void explicitCacheSizeShoudldHitIfQueryingLessThanCacheSize() throws Exception {
-		cache = new MetadataBlockCache(tmbr, 10);
+  @Test
+  public void explicitCacheSizeShoudldHitIfQueryingLessThanCacheSize()
+      throws Exception {
+    cache = new MetadataBlockCache(tmbr, 10);
 
-		int count = 0;
-		for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
-			count++;
-			if (count > 10) {
-				break;
-			}
-			assertSame(String.format("wrong block for offset %d", entry.getKey().longValue()),
-					entry.getValue(),
-					cache.read(10101, entry.getKey().longValue()));
-		}
-		count = 0;
-		for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
-			count++;
-			if (count > 10) {
-				break;
-			}
-			assertSame(String.format("wrong block for offset %d", entry.getKey().longValue()),
-					entry.getValue(),
-					cache.read(10101, entry.getKey().longValue()));
-		}
-		assertEquals("wrong hit count", 10L, cache.getCacheHits());
-		assertEquals("wrong miss count", 10L, cache.getCacheMisses());
-	}
+    int count = 0;
+    for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
+      count++;
+      if (count > 10) {
+        break;
+      }
+      assertSame(String
+              .format("wrong block for offset %d", entry.getKey().longValue()),
+          entry.getValue(),
+          cache.read(10101, entry.getKey().longValue()));
+    }
+    count = 0;
+    for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
+      count++;
+      if (count > 10) {
+        break;
+      }
+      assertSame(String
+              .format("wrong block for offset %d", entry.getKey().longValue()),
+          entry.getValue(),
+          cache.read(10101, entry.getKey().longValue()));
+    }
+    assertEquals("wrong hit count", 10L, cache.getCacheHits());
+    assertEquals("wrong miss count", 10L, cache.getCacheMisses());
+  }
 
-	@Test
-	public void explicitCacheSizeShoudldMissIfQueryingMoreThanCacheSize() throws Exception {
-		cache = new MetadataBlockCache(tmbr, 10);
+  @Test
+  public void explicitCacheSizeShoudldMissIfQueryingMoreThanCacheSize()
+      throws Exception {
+    cache = new MetadataBlockCache(tmbr, 10);
 
-		int count = 0;
-		for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
-			count++;
-			if (count > 11) {
-				break;
-			}
-			assertSame(String.format("wrong block for offset %d", entry.getKey().longValue()),
-					entry.getValue(),
-					cache.read(10101, entry.getKey().longValue()));
-		}
-		count = 0;
-		for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
-			count++;
-			if (count > 11) {
-				break;
-			}
-			assertSame(String.format("wrong block for offset %d", entry.getKey().longValue()),
-					entry.getValue(),
-					cache.read(10101, entry.getKey().longValue()));
-		}
-		assertEquals("wrong hit count", 0L, cache.getCacheHits());
-		assertEquals("wrong miss count", 22L, cache.getCacheMisses());
-	}
+    int count = 0;
+    for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
+      count++;
+      if (count > 11) {
+        break;
+      }
+      assertSame(String
+              .format("wrong block for offset %d", entry.getKey().longValue()),
+          entry.getValue(),
+          cache.read(10101, entry.getKey().longValue()));
+    }
+    count = 0;
+    for (Map.Entry<Long, MetadataBlock> entry : blockMap.entrySet()) {
+      count++;
+      if (count > 11) {
+        break;
+      }
+      assertSame(String
+              .format("wrong block for offset %d", entry.getKey().longValue()),
+          entry.getValue(),
+          cache.read(10101, entry.getKey().longValue()));
+    }
+    assertEquals("wrong hit count", 0L, cache.getCacheHits());
+    assertEquals("wrong miss count", 22L, cache.getCacheMisses());
+  }
 
-	@Test
-	public void closeShouldCloseUnderlyingBlockReaderByDefault() throws Exception {
-		cache.close();
-		assertTrue("not closed", mbr.isClosed());
-	}
+  @Test
+  public void closeShouldCloseUnderlyingBlockReaderByDefault()
+      throws Exception {
+    cache.close();
+    assertTrue("not closed", mbr.isClosed());
+  }
 
-	@Test
-	public void closeShouldCloseUnderlyingBlockReaderIfExplicitlySet() throws Exception {
-		cache = new MetadataBlockCache(tmbr, true);
-		cache.close();
-		assertTrue("not closed", mbr.isClosed());
-	}
+  @Test
+  public void closeShouldCloseUnderlyingBlockReaderIfExplicitlySet()
+      throws Exception {
+    cache = new MetadataBlockCache(tmbr, true);
+    cache.close();
+    assertTrue("not closed", mbr.isClosed());
+  }
 
-	@Test
-	public void closeShouldNotCloseUnderlyingBlockReaderIfExplicitlyUnset() throws Exception {
-		cache = new MetadataBlockCache(tmbr, false);
-		cache.close();
-		assertFalse("closed", mbr.isClosed());
-	}
+  @Test
+  public void closeShouldNotCloseUnderlyingBlockReaderIfExplicitlyUnset()
+      throws Exception {
+    cache = new MetadataBlockCache(tmbr, false);
+    cache.close();
+    assertFalse("closed", mbr.isClosed());
+  }
 
-	@Test
-	public void closeShouldCloseUnderlyingBlockReaderIfExplicitlySetAndSizeSpecified() throws Exception {
-		cache = new MetadataBlockCache(tmbr, 1, true);
-		cache.close();
-		assertTrue("not closed", mbr.isClosed());
-	}
+  @Test
+  public void closeShouldCloseUnderlyingBlockReaderIfExplicitlySetAndSizeSpecified()
+      throws Exception {
+    cache = new MetadataBlockCache(tmbr, 1, true);
+    cache.close();
+    assertTrue("not closed", mbr.isClosed());
+  }
 
-	@Test
-	public void closeShouldNotCloseUnderlyingBlockReaderIfExplicitlyUnsetAndSizeSpecified() throws Exception {
-		cache = new MetadataBlockCache(tmbr, 1, false);
-		cache.close();
-		assertFalse("closed", mbr.isClosed());
-	}
+  @Test
+  public void closeShouldNotCloseUnderlyingBlockReaderIfExplicitlyUnsetAndSizeSpecified()
+      throws Exception {
+    cache = new MetadataBlockCache(tmbr, 1, false);
+    cache.close();
+    assertFalse("closed", mbr.isClosed());
+  }
 }
